@@ -8,7 +8,6 @@ import android.os.*
 import android.util.Log
 import org.greenrobot.eventbus.EventBus
 import java.io.Serializable
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Created by Android Studio.
@@ -32,20 +31,21 @@ class MultiProcessEventBus private constructor() {
         context.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE)
     }
 
-    fun post(event:Any){
-        val message : Message = Message.obtain()
-        message.what = 0;
+    fun post(event: Any) {
+        val message: Message = Message.obtain()
+        message.what = 0
         if (event is Serializable) {
-            val bundle = Bundle();
-            bundle.putSerializable("event", event);
+            val bundle = Bundle()
+            bundle.putSerializable(Constants.KEY_EVENT, event)
             message.data = bundle
         }
         mServiceMessenger.send(message)
     }
 
 
-    lateinit var mServiceMessenger: Messenger;
-    var clientMessenger: Messenger = Messenger(Handler() { msg ->
+    lateinit var mServiceMessenger: Messenger
+
+    var clientMessenger: Messenger = Messenger(Handler { msg ->
         when (msg.what) {
             0 -> {
                 Log.e("a", "receive message and ->" + getCurrentPID())
@@ -58,20 +58,20 @@ class MultiProcessEventBus private constructor() {
         }
     })
 
-    var mServiceConnection: ServiceConnection = object : ServiceConnection {
+    private var mServiceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            mServiceMessenger = Messenger(service);
-            val msg = Message.obtain();
-            val bundle: Bundle = Bundle()
-            bundle.putParcelable("messenger", clientMessenger)
-            bundle.putString("pid", getCurrentPID())
+            mServiceMessenger = Messenger(service)
+            val msg = Message.obtain()
+            val bundle = Bundle()
+            bundle.putParcelable(Constants.KEY_MESSENGER, clientMessenger)
+            bundle.putString(Constants.KEY_PID, getCurrentPID())
             msg.data = bundle
             msg.what = 1
             mServiceMessenger.send(msg)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            // do nothing
         }
     }
 

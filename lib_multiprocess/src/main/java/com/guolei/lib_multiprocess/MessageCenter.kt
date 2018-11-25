@@ -19,12 +19,12 @@ class MessageCenter : Service() {
 
     val mMessenger: Messenger = Messenger(Handler() { msg ->
         when (msg.what) {
-            0 -> {
-//                val message: Any = msg.obj;
+            Constants.MESSAGE_WHAT_POSTMSG -> {
                 val message: Message = Message();
                 message.what = 0;
                 val bundle = Bundle();
-                bundle.putSerializable("event", msg.data.getSerializable("event"));
+                bundle.putSerializable(Constants.KEY_EVENT,
+                        msg.data.getSerializable(Constants.KEY_EVENT));
                 message.data = bundle
                 serviceMap.forEach { t: String, u: Messenger ->
 
@@ -32,7 +32,7 @@ class MessageCenter : Service() {
                 }
                 true
             }
-            1 -> {
+            Constants.MESSAGE_WHAT_REGISTER -> {
                 register(msg.data)
                 true
             }
@@ -41,21 +41,12 @@ class MessageCenter : Service() {
     })
 
     override fun onBind(intent: Intent?): IBinder {
-//        register(intent)
         return mMessenger.binder;
     }
 
-    override fun onRebind(intent: Intent?) {
-        super.onRebind(intent)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return super.onStartCommand(intent, flags, startId)
-    }
-
     private fun register(bundle: Bundle) {
-        val messenger: Messenger = bundle.getParcelable("messenger");
-        val packageName = bundle.getString("pid");
+        val messenger: Messenger = bundle.getParcelable(Constants.KEY_MESSENGER);
+        val packageName = bundle.getString(Constants.KEY_PID);
         if (!serviceMap.contains(packageName)) {
             serviceMap.put(packageName, messenger);
         }
