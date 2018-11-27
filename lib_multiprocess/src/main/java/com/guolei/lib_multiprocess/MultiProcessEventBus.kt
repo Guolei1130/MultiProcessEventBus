@@ -9,6 +9,7 @@ import android.util.Log
 import org.greenrobot.eventbus.EventBus
 import java.io.Serializable
 
+@Suppress("unused")
 /**
  * Created by Android Studio.
  * User: guolei
@@ -18,7 +19,6 @@ import java.io.Serializable
  * Desc:
  */
 class MultiProcessEventBus private constructor() {
-
 
     companion object {
         val instance: MultiProcessEventBus by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -34,23 +34,94 @@ class MultiProcessEventBus private constructor() {
     fun post(event: Any) {
         val message: Message = Message.obtain()
         message.what = 0
-        if (event is Serializable) {
-            val bundle = Bundle()
-            bundle.putSerializable(Constants.KEY_EVENT, event)
-            message.data = bundle
+        val bundle = Bundle()
+        when (event) {
+            is Serializable -> bundle.putSerializable(Constants.KEY_EVENT, event)
+            is Parcelable -> bundle.putParcelable(Constants.KEY_EVENT, event)
+            else -> throw IllegalArgumentException("event must be serializeable or parcelable")
         }
+        message.data = bundle
         mServiceMessenger.send(message)
     }
 
+    fun postSticky(event: Any) {
+        val message: Message = Message.obtain()
+        message.what = Constants.MESSAGE_WHAT_POST_STICKY
+        val bundle = Bundle()
+        when (event) {
+            is Serializable -> bundle.putSerializable(Constants.KEY_EVENT, event)
+            is Parcelable -> bundle.putParcelable(Constants.KEY_EVENT, event)
+            else -> throw IllegalArgumentException("event must be serializable or parcelable")
+        }
+        message.data = bundle
+        mServiceMessenger.send(message)
+    }
+
+    fun removeAllSticky() {
+        val message = Message.obtain()
+        message.what = Constants.MESSAGE_WHAT_REMOVE_ALL_STICKY
+        mServiceMessenger.send(message)
+    }
+
+    fun removeStickyEvent(eventType: Class<*>) {
+        val message = Message.obtain()
+        message.what = Constants.MESSAGE_WHAT_REMOVE_STICKY_BY_CLASS
+        val bundle = Bundle()
+        bundle.putSerializable(Constants.KEY_EVENT, eventType)
+        mServiceMessenger.send(message)
+    }
+
+    fun removeStickyEvent(event: Any) {
+        val message: Message = Message.obtain()
+        message.what = Constants.MESSAGE_WHAT_REMOVE_STICKY_BY_OBJECT
+        val bundle = Bundle()
+        when (event) {
+            is Serializable -> bundle.putSerializable(Constants.KEY_EVENT, event)
+            is Parcelable -> bundle.putParcelable(Constants.KEY_EVENT, event)
+            else -> throw IllegalArgumentException("event must be serializable or parcelable")
+        }
+        message.data = bundle
+        mServiceMessenger.send(message)
+    }
 
     lateinit var mServiceMessenger: Messenger
 
     var clientMessenger: Messenger = Messenger(Handler { msg ->
         when (msg.what) {
-            0 -> {
+            Constants.MESSAGE_WHAT_POSTMSG -> {
                 Log.e("a", "receive message and ->" + getCurrentPID())
                 if (msg.data != null) {
-                    EventBus.getDefault().post(msg.data.getSerializable("event"))
+                    EventBus.getDefault().post(msg.data.getSerializable(Constants.KEY_EVENT))
+                }
+                true
+            }
+            Constants.MESSAGE_WHAT_POST_STICKY -> {
+                if (msg.data != null) {
+                    EventBus.getDefault().postSticky(msg.data.getSerializable(Constants.KEY_EVENT))
+                }
+                true
+            }
+            Constants.MESSAGE_WHAT_REMOVE_ALL_STICKY -> {
+                EventBus.getDefault().removeAllStickyEvents()
+                true
+            }
+            Constants.MESSAGE_WHAT_REMOVE_STICKY_BY_OBJECT -> {
+                if (msg.data != null) {
+                    val event = msg.data.getSerializable(Constants.KEY_EVENT);
+                    if (event != null) {
+                        EventBus.getDefault().removeStickyEvent(event)
+                    }
+                    val eventP = msg.data.getParcelable<Parcelable>(Constants.KEY_EVENT)
+                    if (eventP != null) {
+                        EventBus.getDefault().removeStickyEvent(eventP)
+                    }
+                }
+                true
+            }
+            Constants.MESSAGE_WHAT_REMOVE_STICKY_BY_CLASS -> {
+                if (msg.data != null) {
+                    val eventType: Class<*> = msg.data.getSerializable(Constants.KEY_EVENT) as Class<*>;
+                    EventBus.getDefault().removeStickyEvent(eventType)
                 }
                 true
             }

@@ -15,7 +15,14 @@ class Constants {
         @JvmField
         val MESSAGE_WHAT_REGISTER = 1
         @JvmField
-        val MESSAGE_WHAT_REVEIVE_MSG = 3
+        val MESSAGE_WHAT_POST_STICKY = 2
+        @JvmField
+        val MESSAGE_WHAT_REMOVE_ALL_STICKY = 3
+        @JvmField
+        val MESSAGE_WHAT_REMOVE_STICKY_BY_OBJECT = 4
+        @JvmField
+        val MESSAGE_WHAT_REMOVE_STICKY_BY_CLASS = 5
+
 
         @JvmField
         val KEY_EVENT = "event"
