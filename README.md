@@ -12,3 +12,11 @@
 - [x] 简单实现跨进程消息投递
 - [ ] 思考如何在使用上减去序列化
 - [x] 支持EventBus其他的方法
+
+# 用法[参考Demo]
+
+* 进程启动的时候注册 MultiProcessEventBus.instance.register(this)
+
+* 将EventBus.getDefault().post 替换成MultiProcessEventBus.instance.post(TestMessage())
+
+注意，要是序列化的，毕竟要跨进程
